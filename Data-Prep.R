@@ -45,7 +45,10 @@ long_player_time$name <- as.factor(trimws(long_player_time$name))
 long_player_time$seconds <-as.numeric(long_player_time$seconds)
 player_time_grouped <- long_player_time %>% group_by(name) %>% summarise(playing_time_mins = sum(seconds)/60) %>% arrange(desc(playing_time_mins))
 head(player_time_grouped)
-plot(density(player_time_grouped$playing_time_mins))
+tail(player_time_grouped)
+plot(density(player_time_grouped$playing_time_mins[350:537]))
+mean(player_time_grouped$playing_time_mins[350:537])
+sum(player_time_grouped$playing_time_mins[350:537])
 #take all names from data, remove white space, get unique and sort alphabetically.
 #will be used to get list of all players as node feature list
 player_names <- sort(unique(trimws(unlist(c(pbp2021_clean$home_split_lineup, pbp2021_clean$away_split_lineup)))))
