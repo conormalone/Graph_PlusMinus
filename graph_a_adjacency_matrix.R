@@ -9,13 +9,14 @@ for(i in 1:length(levels(df$game_id))){
   game_subset <- df %>%  dplyr::filter(game_id == levels(df$game_id)[i])
   game_subset<-droplevels(game_subset)
   #get players from this game
-  game_player_list <- unique(trimws(c(game_subset$home_split_lineup_1, game_subset$home_split_lineup_2,game_subset$home_split_lineup_3,game_subset$home_split_lineup_4,game_subset$home_split_lineup_5,
-                        game_subset$away_split_lineup_1, game_subset$away_split_lineup_2,game_subset$away_split_lineup_3,game_subset$away_split_lineup_4,game_subset$away_split_lineup_5)))
-  
+  game_player_list <- unique(trimws(c(game_subset$off_split_lineup_1, game_subset$off_split_lineup_2,game_subset$off_split_lineup_3,game_subset$off_split_lineup_4,game_subset$off_split_lineup_5,
+                        game_subset$def_split_lineup_1, game_subset$def_split_lineup_2,game_subset$def_split_lineup_3,game_subset$def_split_lineup_4,game_subset$def_split_lineup_5)))
+  #replace replacement level players
+  game_player_list[game_player_list %in% rep_level_players]  <-"Replacement Player"
   for(j in 1:length(levels(game_subset$all_lineups))){
     matrix_list[[k]] = list()
     adj_matrix <- matrix(0L, nrow=length(game_player_list), ncol =length(game_player_list) )
-    colnames(adj_matrix) = rownames(adj_matrix) = game_player_list
+    colnames(adj_matrix) = rownames(adj_matrix) = game_player_list[order(game_player_list)]
     this_stint <-levels(game_subset$all_lineups)[j]
     #print(paste0("this is stint: ",this_stint))
   #add 1 or zero to the adj matrix if colname is in the stint
