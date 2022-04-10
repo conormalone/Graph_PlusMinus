@@ -5,8 +5,8 @@
 #get all players not on rep level list using %ni% function inverting %in%
 graph_x_function <- function(df){
   graph_x <- list()
-non_rep_players <- all_player_list[all_player_list %ni% rep_level_players]                       
-player_nodes <-sort(c(non_rep_players, "Replacement Player"))
+                      
+player_nodes <-c(top_player_list, "Replacement Player")
 
 
 iter = 1
@@ -19,12 +19,15 @@ for(i in 1:length(levels(df$game_id))){
   #replace replacement level players
   for(j in 1:length(levels(game_subset$all_lineups))){
     stint_subset <- game_subset %>%  dplyr::filter(all_lineups == levels(game_subset$all_lineups)[j])
-    player_list <- trimws(strsplit(as.character(stint_subset$all_lineups), split = ",")[[1]])
+    player_list <- unique(trimws(strsplit(as.character(stint_subset$all_lineups), split = ",")[[1]]))
     player_list[player_list %in% rep_level_players] <- "Replacement Player"
+    player_list <- sort(player_list)
     node_feature_matrix <- matrix(0L,nrow = 10, ncol=length(player_nodes)+1)
     colnames(node_feature_matrix) <- c(player_nodes,"offense")
+    #for each player on court put a 1 in their column
     for(k in 1:10){
       node_feature_matrix[[k, player_list[k]]]<-1
+    #list is ordered offense defense so for OGPM each player has 1 for "offense" column
     if(k<=5)  node_feature_matrix[[k,ncol(node_feature_matrix)]] <-1
     }
     graph_x[[iter]] <-node_feature_matrix

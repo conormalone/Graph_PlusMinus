@@ -4,6 +4,9 @@ library(reticulate)
 `%ni%` <- Negate(`%in%`)
 pbp2021 <-readRDS("pbp20-21.rds")
 pbp2122 <-readRDS("pbp21-22.rds")
+#will set aside games after 1st Feb 22 as test data
+test_games <- pbp2122 %>% dplyr::filter(game_date > "2022-02-01")
+non_test_games <- pbp2122 %>% dplyr::filter(game_date <= "2022-02-01")
 #function to clean and edit the dfs
 pbp_clean_function <-function(df){
   #leave out garbage time reps
@@ -23,7 +26,8 @@ pbp_clean_function <-function(df){
   return(df)
 }
 pbp2021_clean <- pbp_clean_function(pbp2021)
-pbp2122_clean <- pbp_clean_function(pbp2122)
+pbptest_clean <- pbp_clean_function(test_games)
+pbp2122_clean <- pbp_clean_function(non_test_games)
 
 #remove frames where knicks have 6 on the court
 pbp2021_clean <- pbp2021_clean %>%  dplyr::filter(is.na(def_split_lineup_6)| is.na(off_split_lineup_6)) %>% 
@@ -38,12 +42,15 @@ messy_game <- pbp2021_clean %>% dplyr::filter(game_id == "22000483") %>%
 pbp2021_clean <- pbp2021_clean %>% dplyr::filter(game_id != "22000483")
 pbp2021_clean <- rbind(pbp2021_clean,messy_game)
 pbp_clean <-rbind(pbp2021_clean, pbp2122_clean)
+
+#combine all data to get full player list
+all_data <-rbind(pbp_clean, pbptest_clean)
 #get players by mins played, will take top x number of players
-long_player_time <- as.data.frame(rbind(cbind(pbp_clean$secs_played, pbp_clean$off_split_lineup_1),cbind(pbp_clean$secs_played, pbp_clean$off_split_lineup_2),
-                   cbind(pbp_clean$secs_played, pbp_clean$off_split_lineup_3),cbind(pbp_clean$secs_played, pbp_clean$off_split_lineup_4),
-                   cbind(pbp_clean$secs_played, pbp_clean$off_split_lineup_5),cbind(pbp_clean$secs_played, pbp_clean$def_split_lineup_1),
-                   cbind(pbp_clean$secs_played, pbp_clean$def_split_lineup_2),cbind(pbp_clean$secs_played, pbp_clean$def_split_lineup_3),
-                   cbind(pbp_clean$secs_played, pbp_clean$def_split_lineup_4),cbind(pbp_clean$secs_played, pbp_clean$def_split_lineup_5)))
+long_player_time <- as.data.frame(rbind(cbind(all_data$secs_played, all_data$off_split_lineup_1),cbind(all_data$secs_played, all_data$off_split_lineup_2),
+                   cbind(all_data$secs_played, all_data$off_split_lineup_3),cbind(all_data$secs_played, all_data$off_split_lineup_4),
+                   cbind(all_data$secs_played, all_data$off_split_lineup_5),cbind(all_data$secs_played, all_data$def_split_lineup_1),
+                   cbind(all_data$secs_played, all_data$def_split_lineup_2),cbind(all_data$secs_played, all_data$def_split_lineup_3),
+                   cbind(all_data$secs_played, all_data$def_split_lineup_4),cbind(all_data$secs_played, all_data$def_split_lineup_5)))
 #add column names
 colnames(long_player_time) <- c("seconds", "name")
 #trim leading whitespace
@@ -53,8 +60,13 @@ long_player_time$seconds <-as.numeric(long_player_time$seconds)
 #get players ordered by time played
 player_time_grouped <- long_player_time %>% dplyr::group_by(name) %>% dplyr::summarise(playing_time_mins = sum(seconds)/60) %>% arrange(desc(playing_time_mins))
 #cleaned list of all players
-all_player_list <- unique(trimws(c(pbp_clean$off_split_lineup_1, pbp_clean$off_split_lineup_2,pbp_clean$off_split_lineup_3,pbp_clean$off_split_lineup_4,pbp_clean$off_split_lineup_5,
-                                   pbp_clean$def_split_lineup_1, pbp_clean$def_split_lineup_2,pbp_clean$def_split_lineup_3,pbp_clean$def_split_lineup_4,pbp_clean$def_split_lineup_5)))
+all_player_list <- sort(unique(trimws(c(all_data$off_split_lineup_1, all_data$off_split_lineup_2,all_data$off_split_lineup_3,all_data$off_split_lineup_4,all_data$off_split_lineup_5,
+                                   all_data$def_split_lineup_1, all_data$def_split_lineup_2,all_data$def_split_lineup_3,all_data$def_split_lineup_4,all_data$def_split_lineup_5))))
 
 #get players in 401st for mins played onwards
 rep_level_players <- as.character(unique(player_time_grouped$name[401:nrow(player_time_grouped)]))
+
+#get player list with just top 400 mins
+top_player_list <- all_player_list[all_player_list %ni% rep_level_players]
+
+
