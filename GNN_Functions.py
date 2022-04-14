@@ -86,11 +86,12 @@ class BDB22GNN(Model):
 
 
 model = BDB22GNN(10, 30)
-model.compile('adam', "mean_absolute_error")
+model.compile('adam', "mean_squared_error")
 
 model.fit(loader_tr.load(), validation_data= loader_va.load(), steps_per_epoch=loader_tr.steps_per_epoch, validation_steps=loader_va.steps_per_epoch, epochs=100)
 #model.fit(loader_tr.load(), validation_data= loader_va.load())
 
-#est_loss = model.evaluate(loader_te.load(), steps=loader_te.steps_per_epoch)
+test_loss = model.evaluate(loader_te.load(), steps=loader_te.steps_per_epoch)
 
-#print('Test loss: {}'.format(test_loss))
+print('Test loss: {}'.format(test_loss))
+predictions = model.predict(loader_te.load(), steps =loader_te.steps_per_epoch)
