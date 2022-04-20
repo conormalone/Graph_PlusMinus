@@ -14,8 +14,8 @@ for(i in 1:length(levels(df$game_id))){
     stint_subset <- game_subset %>%  dplyr::filter(all_lineups == levels(game_subset$all_lineups)[j])
     stint_subset<-droplevels(stint_subset)
     matrix_list[[k]] = list()
-    adj_matrix <- matrix(0L, nrow=length(player_adj_list), ncol =length(player_adj_list))
-    #colnames(adj_matrix) = rownames(adj_matrix) = player_adj_list
+    adj_matrix <- matrix(, nrow = 0, ncol =3)
+    colnames(adj_matrix) = c("R","C","V")
     this_stint <-levels(game_subset$all_lineups)[j]
     this_stint_clean <-trimws(strsplit(as.character(this_stint), split = ",")[[1]])
     for(rep in 1:length(this_stint_clean[this_stint_clean %in% rep_level_players])){
@@ -30,8 +30,8 @@ for(i in 1:length(levels(df$game_id))){
         next
       }
       #if the player in the col and row are present in the stint mark 1 in their adj area, otherwise 0
-      adj_matrix[which(player_adj_list == this_stint_clean[row]),
-                 which(player_adj_list == this_stint_clean[col])] <- 1
+      adj_matrix <- rbind(adj_matrix, c((which(player_adj_list == this_stint_clean[row])-1),
+                           (which(player_adj_list == this_stint_clean[col])-1), 1))
     }}
     matrix_list[[k]] <-adj_matrix
     k=k+1

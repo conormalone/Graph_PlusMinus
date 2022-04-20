@@ -8,11 +8,11 @@ from spektral.data import Dataset, BatchLoader, Graph
 from spektral.transforms.normalize_adj import NormalizeAdj
 from tensorflow.keras.layers import Dropout
 from spektral.layers import GCNConv, GlobalSumPool
-
+import scipy.sparse as sparse
 ################################################################################
 # Config
 ################################################################################
-learning_rate = 1e-2  # Learning rate
+learning_rate = 1e-3  # Learning rate
 epochs = 100  # Number of training epochs
 es_patience = 10  # Patience for early stopping
 batch_size = 30  # Batch size
@@ -38,7 +38,11 @@ class GraphDataset(Dataset):
             x = np.array(iter_x)#.reshape(10,402)
             # Edges
             iter_a =  self.df["train_a"][i].copy()
-            a = np.array(iter_a)
+            adj_V = iter_a[:,2]
+            adj_R = iter_a[:,0]
+            adj_C = iter_a[:,1]
+            a = sparse.coo_matrix((adj_V, (adj_R, adj_C)), shape=(401,401))
+            a.todense()
             y = np.zeros((30,))
             y_index = int(self.df["y"][i]*10)
             y[:y_index] = 1
@@ -86,7 +90,7 @@ class BDB22GNN(Model):
 
 
 model = BDB22GNN(10, 30)
-model.compile('adam', "mean_squared_error")
+model.compile('adam', "mean_absolute_error")
 
 model.fit(loader_tr.load(), validation_data= loader_va.load(), steps_per_epoch=loader_tr.steps_per_epoch, validation_steps=loader_va.steps_per_epoch, epochs=100)
 #model.fit(loader_tr.load(), validation_data= loader_va.load())

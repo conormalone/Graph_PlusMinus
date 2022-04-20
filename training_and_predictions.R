@@ -26,3 +26,8 @@ for(i in 1:nrow(predictions)){
 colnames(all_eval) <- c("predict","actual", "difference")
 
 write.csv(all_eval, "all_eval.csv")
+
+
+training_data$train_x <- graph_x_function(train)
+validation_data$train_x <- graph_x_function(val)
+test_data$train_x <- graph_x_function(pbptest_clean)
