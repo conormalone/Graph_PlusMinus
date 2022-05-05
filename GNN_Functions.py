@@ -7,6 +7,7 @@ from tensorflow.keras.models import Model
 from spektral.data import Dataset, BatchLoader, Graph
 from spektral.transforms.normalize_adj import NormalizeAdj
 from tensorflow.keras.layers import Dropout
+from tensorflow.keras.regularizers import l2
 from spektral.layers import GCNConv, GlobalSumPool
 import scipy.sparse as sparse
 ################################################################################
@@ -16,6 +17,7 @@ learning_rate = 1e-3  # Learning rate
 epochs = 100  # Number of training epochs
 es_patience = 10  # Patience for early stopping
 batch_size = 30  # Batch size
+l2_reg = 5e-4
 local_test = r.test_data
 local_train = r.training_data
 local_val = r.validation_data
@@ -24,7 +26,7 @@ local_val = r.validation_data
 ################################################################################
 
 class GraphDataset(Dataset):
-    def __init__(self, n_samples, df, n_colors=30, **kwargs):
+    def __init__(self, n_samples, df, n_colors=60, **kwargs):
         self.n_samples = n_samples
         self.df = df  
         self.n_colors = n_colors  
@@ -44,7 +46,7 @@ class GraphDataset(Dataset):
             a = sparse.coo_matrix((adj_V, (adj_R, adj_C)), shape=(401,401))
             a.todense()
             y = np.zeros((30,))
-            y_index = int(self.df["y"][i]*10)
+            y_index = int((self.df["y"][i]+3)*10)
             y[:y_index] = 1
            
             output.append(Graph(x=x, a=a, y=y))
@@ -72,24 +74,24 @@ loader_te = BatchLoader(data_te, batch_size=batch_size)
 # Build model
 ################################################################################
 class BDB22GNN(Model):
-
-    def __init__(self, n_hidden, n_labels):
-        super().__init__()
-        self.graph_conv = GCNConv(n_hidden)
-        self.pool = GlobalSumPool()
-        self.dropout = Dropout(0.5)
-        self.dense = Dense(n_labels, 'sigmoid')
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.conv1 = GCNConv(32, activation="elu")
+        self.conv2 = GCNConv(32, activation="elu")
+        self.flatten = GlobalSumPool()
+        self.fc1 = Dense(512, activation="relu")
+        self.fc2 = Dense(30, activation="sigmoid")  
 
     def call(self, inputs):
-        out = self.graph_conv(inputs)
-        out = self.dropout(out)
-        out = self.pool(out)
-        out = self.dense(out)
+        x, a = inputs
+        x = self.conv1([x, a])
+        x = self.conv2([x, a])
+        output = self.flatten(x)
+        output = self.fc1(output)
+        output = self.fc2(output)
 
-        return out
-
-
-model = BDB22GNN(10, 30)
+        return output
+model = BDB22GNN()
 model.compile('adam', "mean_absolute_error")
 
 model.fit(loader_tr.load(), validation_data= loader_va.load(), steps_per_epoch=loader_tr.steps_per_epoch, validation_steps=loader_va.steps_per_epoch, epochs=100)
