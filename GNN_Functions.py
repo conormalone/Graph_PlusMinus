@@ -8,13 +8,14 @@ from spektral.data import Dataset, BatchLoader, Graph
 from spektral.transforms.normalize_adj import NormalizeAdj
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.regularizers import l2
+from tensorflow.keras.callbacks import EarlyStopping
 from spektral.layers import GCNConv, GlobalSumPool
 import scipy.sparse as sparse
 ################################################################################
 # Config
 ################################################################################
 learning_rate = 1e-3  # Learning rate
-epochs = 100  # Number of training epochs
+epochs = 40  # Number of training epochs
 es_patience = 10  # Patience for early stopping
 batch_size = 30  # Batch size
 l2_reg = 5e-4
@@ -46,7 +47,7 @@ class GraphDataset(Dataset):
             a = sparse.coo_matrix((adj_V, (adj_R, adj_C)), shape=(401,401))
             a.todense()
             y = np.zeros((30,))
-            y_index = int((self.df["y"][i]+3)*10)
+            y_index = int((self.df["y"][i])*10)
             y[:y_index] = 1
            
             output.append(Graph(x=x, a=a, y=y))
@@ -68,8 +69,8 @@ data_te = GraphDataset(n_samples = len_test, df=local_test, transforms=Normalize
 loader_tr = BatchLoader(data_tr, batch_size=batch_size, epochs=epochs)
 loader_va = BatchLoader(data_va, batch_size=batch_size)
 loader_te = BatchLoader(data_te, batch_size=batch_size)
-
-
+#add callback to stop training if loss doesn't improve for 3 epochs
+callback = EarlyStopping(monitor='loss', patience=3, min_delta = 0.001)
 ################################################################################
 # Build model
 ################################################################################
@@ -94,7 +95,7 @@ class BDB22GNN(Model):
 model = BDB22GNN()
 model.compile('adam', "mean_absolute_error")
 
-model.fit(loader_tr.load(), validation_data= loader_va.load(), steps_per_epoch=loader_tr.steps_per_epoch, validation_steps=loader_va.steps_per_epoch, epochs=100)
+model.fit(loader_tr.load(), validation_data= loader_va.load(), steps_per_epoch=loader_tr.steps_per_epoch, validation_steps=loader_va.steps_per_epoch, epochs=100, callbacks=[callback])
 #model.fit(loader_tr.load(), validation_data= loader_va.load())
 
 test_loss = model.evaluate(loader_te.load(), steps=loader_te.steps_per_epoch)
